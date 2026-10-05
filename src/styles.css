@@ -56,6 +56,18 @@ body { min-width: 320px; }
 .report-sheet th, .report-sheet td { padding: 9px; border: 1px solid #dbe2e5; text-align: left; }
 .report-sheet th { background: #edf3f4; }
 
+/* 离线复测批次 */
+.offline-strip { padding: 7px 18px; background: #a8331f; color: #fff; font-size: 12px; cursor: pointer; }
+.empty-batch { padding: 46px 16px; }
+.batch-progress { padding: 16px 18px 8px; margin-bottom: 14px; }
+.batch-actions { margin-top: 10px; }
+.conflict-panel { margin-bottom: 14px; }
+.conflict-list { display: grid; gap: 12px; padding: 14px; }
+.conflict-card { border-color: #e0b4ab !important; background: #fff8f6; }
+.conflict-card .ant-card-head { background: #fdeee9; }
+.review-grid .ant-table-tbody > tr { cursor: pointer; }
+.ant-table-row-selected > td { background: #e8f4f4 !important; }
+
 @media (max-width: 760px) {
   .page { padding: 12px; }
   .page-head { align-items: flex-start; flex-direction: column; }

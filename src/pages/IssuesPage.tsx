@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import axios from 'axios'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Button,
   DatePicker,
@@ -17,7 +17,9 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import { FilterOutlined, MergeCellsOutlined, SaveOutlined, TeamOutlined } from '@ant-design/icons'
 import { useIssues } from '../api/useIssues'
+import { bulkAssign } from '../api/client'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
+import FreezeBanner from '../components/FreezeBanner'
 import type { Issue } from '../api/types'
 
 const impactColor: Record<string, string> = { 致命: 'red', 严重: 'volcano', 中等: 'gold', 轻微: 'blue' }
@@ -25,6 +27,7 @@ const statusColor: Record<string, string> = { 待分配: 'default', 修复中: '
 
 export default function IssuesPage() {
   useIssues()
+  const queryClient = useQueryClient()
   const issues = useWorkspaceStore((state) => state.issues)
   const selectedKeys = useWorkspaceStore((state) => state.selectedKeys)
   const setSelectedKeys = useWorkspaceStore((state) => state.setSelectedKeys)
@@ -91,6 +94,8 @@ export default function IssuesPage() {
         </Space>
       </div>
 
+      <FreezeBanner />
+
       <div className="toolbar panel">
         <Input.Search placeholder="搜索编号、标题或根因" allowClear style={{ width: 270 }} value={filters.query} onChange={(event) => setFilters({ ...filters, query: event.target.value })} />
         <Select placeholder="站点" allowClear style={{ width: 130 }} value={filters.site || undefined} onChange={(value) => setFilters({ ...filters, site: value ?? '' })} options={[...new Set(issues.map((item) => item.site))].map((value) => ({ value }))} />
@@ -136,6 +141,7 @@ export default function IssuesPage() {
               <dt>关联重复</dt><dd>{detail.mergedKeys.length ? detail.mergedKeys.join('、') : '无'}</dd>
               <dt>修复说明</dt><dd>{detail.fixNote ?? '开发尚未提交'}</dd>
               <dt>复测环境</dt><dd>{detail.retestEnv ?? '待开发提交'}</dd>
+              <dt>复测证据</dt><dd>{detail.retestEvidence ?? '暂无复测证据'}</dd>
             </dl>
             <div>
               <Typography.Title level={5}>操作历史</Typography.Title>
@@ -147,11 +153,15 @@ export default function IssuesPage() {
 
       <Modal title="批量分配整改项" open={assignOpen} onCancel={() => setAssignOpen(false)} onOk={() => form.submit()} okText="确认分配">
         <Form form={form} layout="vertical" onFinish={async (values) => {
-          await axios.post('/api/issues/bulk-assign', { keys: selectedKeys, ...values, dueDate: values.dueDate.format('YYYY-MM-DD') })
-          message.success(`已分配 ${selectedKeys.length} 条问题`)
-          setSelectedKeys([])
-          setAssignOpen(false)
-          window.location.reload()
+          try {
+            await bulkAssign({ keys: selectedKeys, ...values, dueDate: values.dueDate.format('YYYY-MM-DD') })
+            message.success(`已分配 ${selectedKeys.length} 条问题`)
+            setSelectedKeys([])
+            setAssignOpen(false)
+            await queryClient.invalidateQueries({ queryKey: ['issues'] })
+          } catch {
+            message.error('当前离线，批量分配未提交；请恢复网络后重试')
+          }
         }}>
           <Form.Item name="team" label="目标团队" rules={[{ required: true }]}><Select options={['前端基础组件组', '结算体验组', '数据可视化组', '供应链前端组'].map((value) => ({ value }))} /></Form.Item>
           <Form.Item name="owner" label="负责人" rules={[{ required: true }]}><Input placeholder="输入负责人姓名" /></Form.Item>

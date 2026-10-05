@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { Button, Checkbox, Select, Space, Table, Tag, Typography, message } from 'antd'
 import { useIssues } from '../api/useIssues'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
+import FreezeBanner from '../components/FreezeBanner'
 
 export default function VersionsPage() {
   useIssues()
   const issues = useWorkspaceStore((state) => state.issues)
+  const batch = useWorkspaceStore((state) => state.batch)
+  const confirmedAt = useWorkspaceStore((state) => state.confirmedAt)
   const [accepted, setAccepted] = useState<string[]>(['A11Y-1074'])
   const diffs = issues
     .filter((item) => ['A11Y-1048', 'A11Y-1074', 'A11Y-1083'].includes(item.key))
@@ -37,8 +40,16 @@ export default function VersionsPage() {
         </Space>
       </div>
 
+      <FreezeBanner />
+
       <div className="panel">
-        <div className="panel-head"><h3>变更清单</h3><Tag color="blue">基线 v4.18</Tag></div>
+        <div className="panel-head">
+          <h3>变更清单</h3>
+          <Space>
+            <Tag color="blue">基线 v4.18</Tag>
+            <Tag>{batch ? `确认版本快照 · ${confirmedAt}` : `数据确认于 ${confirmedAt}`}</Tag>
+          </Space>
+        </div>
         <Table
           rowKey="key"
           dataSource={diffs}
